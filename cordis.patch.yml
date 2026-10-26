@@ -1,0 +1,10 @@
+# dsh-fail-fast bundle layer, applied after the shipped bundles.
+#
+# The Host half inserts a plain plugin row. No `agent-loop` configuration is
+# overridden: the agent loop already runs one ordering group at a time — a
+# group is fully drained and committed before the next group starts — so the
+# plugin can keep the configured parallelism inside a group and only deny calls
+# that have not started yet once a failure has committed.
+- insert:
+    - id: fail-fast
+      name: 'dsh-fail-fast'

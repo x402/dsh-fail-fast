@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Fail-fast tool batch">
+  <rect x="4" y="4" width="56" height="56" rx="14" fill="#1f2937"/>
+  <rect x="11" y="15" width="29" height="8" rx="4" fill="#38bdf8"/>
+  <rect x="11" y="28" width="29" height="8" rx="4" fill="#475569"/>
+  <rect x="11" y="41" width="29" height="8" rx="4" fill="#475569"/>
+  <circle cx="46" cy="20" r="11" fill="#dc2626"/>
+  <path d="M42 16l8 8M50 16l-8 8" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
+</svg>

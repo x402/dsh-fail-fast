@@ -1,0 +1,8 @@
+# Source and docs are text; keep them LF in the repository regardless of the
+# platform that checked them out.
+* text=auto eol=lf
+
+*.png binary
+*.gif binary
+*.jpg binary
+*.pdf binary

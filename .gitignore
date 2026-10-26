@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Local build output (none today; reserved so a future build step cannot be
+# committed by accident)
+dist/
+lib/
+
+# Scratch trees and logs
+.tmp-*
+*.scratch.*
+*.log
+
+# Credential material that must never be committed
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Editor and OS noise
+.DS_Store
+Thumbs.db

@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Fail-Fast Tool Batches",
+    "description": "Keeps a group's parallel-safe tool calls overlapping, but once a call fails every call that has not started yet is returned to the model as a synthesized \"not executed\" error."
+  }
+}

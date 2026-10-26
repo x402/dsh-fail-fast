@@ -1,0 +1,57 @@
+{
+  "name": "dsh-fail-fast",
+  "version": "0.2.0",
+  "private": true,
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/x402/dsh-fail-fast.git"
+  },
+  "homepage": "https://github.com/x402/dsh-fail-fast#readme",
+  "bugs": {
+    "url": "https://github.com/x402/dsh-fail-fast/issues"
+  },
+  "description": "Group-aware fail-fast tool batches for DeepSeek Harness: parallel-safe calls in a group still overlap, but once a call fails every call that has not started yet is skipped with a synthesized \"not executed\" error.",
+  "icon": "./docs/assets/icon.svg",
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "fail-fast",
+    "tool-batch",
+    "agent-loop"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./docs/assets/icon.svg"
+  },
+  "files": [
+    "src",
+    "cordis.patch.yml",
+    "locale",
+    "docs/assets/icon.svg",
+    "docs/CHANGELOG.md",
+    "README.md",
+    "README.en.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "check": "node --check src/index.js",
+    "test": "node test/smoke.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}

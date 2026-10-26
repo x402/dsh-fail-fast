@@ -76,7 +76,7 @@ DSH 会在有新版本时提示并支持一键更新。
 
 ## 致谢
 
-本插件要解决的问题最初由 @Golden-Pigeon（goldpig）发现并指出。
+本插件要解决的问题最初由 [@Golden-Pigeon](https://github.com/Golden-Pigeon) 发现并指出。
 
 ## License
 

@@ -127,7 +127,8 @@ enabled.
 
 ## Acknowledgements
 
-The problem this plugin solves was originally identified by @Golden-Pigeon (goldpig).
+The problem this plugin solves was originally identified by
+[@Golden-Pigeon](https://github.com/Golden-Pigeon).
 
 ## License
 

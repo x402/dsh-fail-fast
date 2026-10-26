@@ -2,6 +2,7 @@
 
 <p align="center">
   <a href="https://github.com/x402/dsh-fail-fast/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/x402/dsh-fail-fast/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://www.npmjs.com/package/dsh-fail-fast"><img alt="npm" src="https://img.shields.io/npm/v/dsh-fail-fast"></a>
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue"></a>
 </p>
 
@@ -50,15 +51,26 @@ DSH 的 agent loop 本来就把一个 step 的调用切成**顺序组**：并行
 
 ## 安装
 
-```bash
-git clone https://github.com/x402/dsh-fail-fast.git ~/dsh/dsh-fail-fast
-```
-
-然后在 DSH 会话里把 checkout 作为 bundle 安装（绝对路径）：
+本插件发布在 npm，包名为 `dsh-fail-fast`。在 DSH Web 的「插件」页点「添加插件」，输入包名安装，完成后点「立即启用」：
 
 ```text
-plugin_manager(action: "install_bundle", target: "/home/<you>/dsh/dsh-fail-fast")
+dsh-fail-fast
 ```
+
+也可以在会话里用插件管理工具安装（安装并启用）：
+
+```text
+plugin_manager(action: "install_bundle", target: "dsh-fail-fast")
+```
+
+DSH 会在有新版本时提示并支持一键更新。
+
+### 其他安装方式
+
+- **固定版本 / 预览提交**：在安装框粘贴 `https://github.com/x402/dsh-fail-fast#<tag 或 commit>`。GitHub 地址安装需要本机有 git 且能访问 GitHub；这种方式 DSH 不检查更新，升级需要先卸载再重装。
+- **本地开发**：clone 仓库后把 checkout 作为 bundle 安装（`link:` 或绝对路径），见 [AGENTS.md](AGENTS.md)。
+
+插件在 `package.json` 中声明兼容 DSH `>=0.2.0-rc.2 <0.3.0`。国内网络下可在安装对话框里选择自定义 registry 镜像。
 
 已安装的 profile 可以用 `plugin_manager` 的 `list_plugins` / `list_bundles` 确认 `fail-fast` 已启用。
 

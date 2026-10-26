@@ -7,13 +7,16 @@ this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
-### Changed
-
-- README (both languages) now documents only the plugin's features, behavior and
-  install steps; development notes (verification log, version/interface tracking,
-  repository layout, background research) were removed.
-
 ## [0.2.0] - 2026-10-26
+
+### Added
+
+- Published to the npm registry as `dsh-fail-fast`, so the bundle installs by
+  package name and the plugin manager reports and installs newer versions.
+  GitHub repository URLs and local checkouts remain supported as alternative
+  install sources.
+- Declared the DSH compatibility range in `package.json`
+  (`engines.dsh`: `>=0.2.0-rc.2 <0.3.0`).
 
 ### Changed
 
@@ -23,6 +26,9 @@ this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   have not started once a failure has committed. Parallel reads stay parallel.
 - Skip notice now says "every call that had not started yet in the batch"
   instead of "every later call", matching the group semantics.
+- README (both languages) now documents only the plugin's features, behavior and
+  install steps; development notes (verification log, version/interface tracking,
+  repository layout, background research) were removed.
 
 ### Removed
 

@@ -36,18 +36,32 @@ npm run check   # node --check src/index.js
 npm test        # offline smoke tests, no DSH process needed
 ```
 
-Install / reinstall in a DSH profile (the row is loaded by the Loader, so a
-replaced package needs remove + install, or a harness restart, to load fresh JS):
+Install / reinstall in a DSH profile. The published package installs by name from
+the npm registry; a local checkout installs with `link:` or an absolute path. The
+row is loaded by the Loader, so a replaced package needs remove + install, or a
+harness restart, to load fresh JS:
 
 ```text
 plugin_manager(action: "remove_bundle",  target: "dsh-fail-fast")
-plugin_manager(action: "install_bundle", target: "<absolute checkout path>")
+plugin_manager(action: "install_bundle", target: "dsh-fail-fast")            # npm
+plugin_manager(action: "install_bundle", target: "<absolute checkout path>") # local dev
 ```
 
 To verify live behavior, spawn a subagent instructed to issue one batch with a
 failing read followed by a call that would leave a file behind, then check the
 durable session events: the later call must be `isError: true` with
 `error.code === "SKIPPED_AFTER_FAILURE"` and the file must not exist.
+
+## Release
+
+Bump `version` in `package.json`, add a `docs/CHANGELOG.md` entry, commit and
+push `main`, then publish and tag:
+
+```bash
+npm run check && npm test
+pnpm publish --access public --publish-branch main   # npm login; add --otp when 2FA asks
+git tag v<version> && git push origin v<version>
+```
 
 ## Hard rules
 

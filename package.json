@@ -1,7 +1,6 @@
 {
   "name": "dsh-fail-fast",
   "version": "0.2.0",
-  "private": true,
   "publishConfig": {
     "access": "public"
   },
@@ -47,7 +46,8 @@
     "test": "node test/smoke.mjs"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=22",
+    "dsh": ">=0.2.0-rc.2 <0.3.0"
   },
   "dsh": {
     "bundle": {

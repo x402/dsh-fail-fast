@@ -2,6 +2,7 @@
 
 <p align="center">
   <a href="https://github.com/x402/dsh-fail-fast/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/x402/dsh-fail-fast/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://www.npmjs.com/package/dsh-fail-fast"><img alt="npm" src="https://img.shields.io/npm/v/dsh-fail-fast"></a>
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue"></a>
 </p>
 
@@ -93,15 +94,33 @@ The failing call's own result is left untouched.
 
 ## Install
 
-```bash
-git clone https://github.com/x402/dsh-fail-fast.git ~/dsh/dsh-fail-fast
-```
-
-Then install the checkout as a bundle in a DSH session (absolute path):
+The plugin is published on npm as `dsh-fail-fast`. In the DSH Web **Plugins** page,
+choose **Add plugin**, enter the package name, and click **Enable now** once it is
+installed:
 
 ```text
-plugin_manager(action: "install_bundle", target: "/home/<you>/dsh/dsh-fail-fast")
+dsh-fail-fast
 ```
+
+Or install it from a session with the plugin manager tool (installs and enables it):
+
+```text
+plugin_manager(action: "install_bundle", target: "dsh-fail-fast")
+```
+
+DSH reports newer versions and updates the plugin in place.
+
+### Other install paths
+
+- **Pinned version / preview commit** — paste
+  `https://github.com/x402/dsh-fail-fast#<tag-or-commit>` into the install field.
+  GitHub installs need `git` and GitHub connectivity, and DSH does not check them for
+  updates, so upgrading means uninstalling and installing again.
+- **Local development** — clone the repository and install the checkout as a bundle
+  (`link:` or an absolute path); see [AGENTS.md](AGENTS.md).
+
+The `package.json` declares DSH compatibility `>=0.2.0-rc.2 <0.3.0`. Behind a slow
+network, pick a custom registry mirror in the install dialog.
 
 `plugin_manager` `list_plugins` / `list_bundles` confirm the `fail-fast` row is
 enabled.

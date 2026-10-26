@@ -8,51 +8,63 @@
 [中文](README.md) | **English**
 
 A DeepSeek Harness (DSH) plugin that treats the tool calls of one model response as
-one batch and makes it **fail fast across scheduling groups**: concurrency-safe
-calls still overlap inside their group, but once a call fails, every call that has
-not started yet is skipped and returned to the model as an `is_error: true`
-"not executed" result.
+one batch and makes it **overlap within a scheduling group, run groups in order, and
+stop at the first failure**: concurrency-safe read-only calls still run in parallel,
+but once a call fails, every call that has not started yet is skipped and returned to
+the model as an `is_error: true` "not executed" result.
 
-## Key insight
+It solves a real problem with parallel tool use: models often emit calls that depend
+on one another (a `write` followed by a `bash`), and once an earlier call fails, the
+later calls have lost their premise — running them is wasted work and can leave
+destructive side effects, while making the whole batch serial would be safe but would
+throw away the concurrency of read-only calls.
 
-The model's emission order is the dependency topology: when it writes
-`[write, bash]`, it has almost certainly ordered the calls by dependency already.
-"Start nothing after the failure point" is therefore a safe approximation — the
-plugin never has to understand tool semantics or dependency graphs.
+The plugin exploits a simple observation — models generally emit calls in dependency
+order, so that order is already the dependency topology — and only denies calls that
+have not started after the failure point, without understanding any tool's semantics
+or a dependency graph. And because skipped calls come back with an explicit "not
+executed" reason, the next turn repairs the batch and the current provider request is
+not wasted.
 
-The economics are simple: after the first failure, the inputs of later calls are
-stale. Continuing is pure waste and can be destructive. Skipping them and telling
-the model does not waste the turn — the next turn repairs the batch.
+## Features
 
-## Why global serial dispatch is unnecessary
+- **Parallelism preserved** — calls that declare `isConcurrencySafe` still overlap up
+  to `maxParallelToolCalls`; enabling the plugin never degrades dispatch to global
+  serial execution.
+- **Group order preserved** — side-effecting or order-dependent calls (file writes,
+  bash, …) form exclusive single-call groups and therefore barriers, so `write → bash`
+  dependency order is kept.
+- **Stop at the first failure** — any final `is_error: true` result (tool error,
+  policy denial, timeout, post-execute block) cancels every call in the batch that has
+  not started yet; siblings already started in the failing group finish normally.
+- **Model-repairable result** — skipped calls come back as `is_error: true` with
+  `FailFastSkippedError` / `SKIPPED_AFTER_FAILURE` and an `Error: Not executed: …`
+  message, so the model can fix the failure and re-issue the remaining calls.
+- **Non-invasive** — the plugin only observes public DSH extension points
+  (`session/event`, `tools/result`, `tools/pre-execute`); it never replaces the tool
+  executor or rewrites the failing call's own result, and a denied call runs no body
+  and triggers no approval.
+- **No dependencies, no config overrides** — a single dependency-free ESM Host plugin;
+  `cordis.patch.yml` only inserts the plugin row and overrides nothing.
+- **Scoped** — only model-direct top-level calls participate; PTC sub-calls (which
+  carry `exec.parent`) and subagents (separate sessions) have independent state.
+  Single-call batches and aborted batches are unaffected.
+
+## How it works
 
 DSH's agent loop already partitions one step's calls into **ordering groups**:
-
-- calls that declare `isConcurrencySafe` form one parallel group, overlapping up
-  to `maxParallelToolCalls`;
-- every other call (file writes, bash, anything with side effects or ordering
-  requirements) is an exclusive single-call group and therefore a barrier;
-- crucially, **a group is fully drained and committed in model order before the
-  next group starts** (rc.2's `runGroup` settle/commit loop; rc.3's
-  `executeToolBatch` has the same shape).
-
-So groups are already strictly serial; pinning `maxParallelToolCalls` to 1 only
-throws away parallel reads. The plugin does three things: let a group run at its
-configured concurrency, inspect the group's outcome after it drains, and cancel
-every later group on the first failure.
-
-## How it works (one Host plugin, no dependencies)
+concurrency-safe calls share a parallel group, every other call is its own group, and
+a group is fully drained and committed in model order before the next group starts.
+On top of that the plugin does three things:
 
 1. **Batch tracking** — listens to `session/event` (`step/start`, `tool/call`) and
-   records the ordered call ids of the step in flight. The loop appends `tool/call`
-   before `prepare`, and group start order is model order.
-2. **Failure point** — listens to `tools/result` and pins the first
-   `isError: true` call in model order. Tool errors, policy denials, timeouts and
-   post-execute blocks all count.
-3. **Cancel the rest** — a prepended `tools/pre-execute` listener denies calls
-   after the failure point that have not started. A denied call never runs its
-   body and never triggers an approval, but the loop still records the normal
-   `tool/call` + `tool/result` pair, so the model sees:
+   records the ordered call ids of the step in flight.
+2. **Failure point** — listens to `tools/result` and pins the first `is_error: true`
+   call in model order.
+3. **Cancel the rest** — a prepended `tools/pre-execute` listener denies calls after
+   the failure point that have not started. A denied call never runs its body and
+   never triggers an approval, but the loop still records the normal `tool/call` +
+   `tool/result` pair, so the model sees:
 
    ```text
    Error: Not executed: the preceding `read` call failed, so fail-fast skipped this call
@@ -60,39 +72,24 @@ every later group on the first failure.
    re-issue the remaining calls in dependency order.
    ```
 
-   The failing call's own result is left untouched. Only model-direct calls take
-   part: PTC sub-dispatches carry `exec.parent`, and subagents are separate
-   sessions with their own batch state.
+The failing call's own result is left untouched.
 
-`cordis.patch.yml` only inserts the Host row; it does not override any config.
+## Behavior and boundaries
 
-## Repository layout
-
-| Path | Contents |
-|---|---|
-| `src/index.js` | The Host plugin (dependency-free ESM) |
-| `cordis.patch.yml` | Bundle patch: inserts the plugin row only |
-| `locale/en.json`, `locale/zh.json` | Plugin Manager title/description |
-| `docs/assets/icon.svg` | Bundle icon |
-| `docs/CHANGELOG.md` | Keep a Changelog release notes |
-| `test/smoke.mjs` | Offline smoke tests over a mock Cordis context |
-| `AGENTS.md` | Repository rules and workflow for AI coding agents |
-
-## Version and interfaces
-
-- The current runtime is **`0.2.1-rc.2`**: npm's `latest` tag still points at rc.2;
-  `0.2.1-rc.3` is only on the `next` tag (`npm install -g @deepseek-ai/dsh@next`,
-  then restart `dsh web`).
-- The three extension points used here (`session/event`, `tools/result`,
-  `tools/pre-execute`) keep the same names and semantics in rc.3; its
-  `BatchSettlement` also appends `tool/call` before `pipeline.prepare` and commits
-  `tool/result` per group. The plugin therefore needs no code change after the
-  upgrade.
-- rc.3's new `ToolExecutor` / `executeToolBatch` / `ctx.tools.setExecutor()` is a
-  whole-batch-executor seam. It is not required for this policy — using it would
-  replace the scheduler instead of adding a policy hook.
-- Offline tests: `node test/smoke.mjs` (or `npm test`); no dependencies and no
-  running harness required.
+- Any final `is_error: true` result counts as a failure: tool errors, policy denials,
+  timeouts and post-execute blocks all cancel the rest of the batch.
+- Calls already started in the failing group run to completion (they declared
+  themselves concurrency-safe and independent, so their results remain meaningful); no
+  new call starts afterwards. If the failure commits very quickly, a same-group tail
+  that has not been prepared yet is also skipped — the conservative direction.
+- Non-concurrency-safe calls (writes, bash, …) are single-call groups, so
+  `write → bash` dependency order is preserved naturally.
+- A single-call batch is unaffected; batch state resets at every step boundary.
+- Aborted batches are synthesized by the agent loop itself (`aborted before
+  dispatch`); this plugin stays out of that path.
+- Cost: already-started same-group calls cannot be recalled (they are independent —
+  that is what allows the overlap). Tools that want to stop earlier must honor
+  `exec.signal`.
 
 ## Install
 
@@ -107,62 +104,11 @@ plugin_manager(action: "install_bundle", target: "/home/<you>/dsh/dsh-fail-fast"
 ```
 
 `plugin_manager` `list_plugins` / `list_bundles` confirm the `fail-fast` row is
-enabled. After editing the source, remove + install the bundle once (or restart
-the harness) so a fresh JS module generation is loaded.
+enabled.
 
-## Verified (web profile, 2026-10-26, group-aware version)
+## Acknowledgements
 
-Real subagent sessions, cross-checked against the durable Session events:
-
-**Case 1 (core)** — one batch `[read missing file, read existing file, bash write file]`;
-the two reads are concurrency-safe and share a parallel group, bash is a later group.
-
-- `read missing file` failed (`FS_NOT_FOUND`);
-- `read existing file` **still ran and succeeded**, returning `GROUP_READ_OK` — the
-  started sibling in the same group was not collateral damage;
-- `bash write file` returned `isError: true` with
-  `error: {name: FailFastSkippedError, code: SKIPPED_AFTER_FAILURE}` and the target
-  file was never created;
-- durable event order confirms the group barrier: both read results were committed
-  before bash's `tool/call` appeared, and that call was denied immediately;
-- the next step in the same session ran normally — batch state resets per step.
-
-**Case 2 (control)** — `[read existing ×2, bash echo CONTROL_OK]`: everything ran,
-nothing was skipped.
-
-**Case 3 (regression)** — `[bash ok, read missing, bash write file]`: first ran,
-second failed, third skipped with no file created.
-
-**Config** — `dsh --profile web --dump-config` shows no
-`maxParallelToolCalls: 1` override on `agent-loop`; the `fail-fast` row is inserted.
-
-## Behavior and boundaries
-
-- Any final `isError: true` result counts as a failure: tool errors, policy denials,
-  timeouts and post-execute blocks all cancel the rest of the batch.
-- Calls already started in the failing group run to completion. They declared
-  themselves concurrency-safe and independent, so their results remain meaningful.
-  If the failure commits while a same-group tail has not been prepared yet, that
-  tail is also skipped — the conservative direction.
-- Non-concurrency-safe calls (writes, bash, …) are single-call groups, so
-  `write → bash` dependency order is preserved naturally.
-- A single-call batch is unaffected; batch state resets at every step boundary.
-- Aborted batches are synthesized by the agent loop itself (`aborted before
-  dispatch`); this plugin stays out of that path.
-- Cost: already-started same-group calls cannot be recalled (they are independent —
-  that is what allows the overlap). Tools that want to stop earlier must honor
-  `exec.signal`.
-
-## Background (Anthropic docs)
-
-- [Parallel tool use](https://platform.claude.com/docs/en/agents-and-tools/tool-use/parallel-tool-use):
-  the API does not prescribe execution order; independent read-only calls may run
-  concurrently, while side-effecting or order-dependent calls should run
-  sequentially.
-- The same page states that the computer-use / browser-use tools must
-  "run them sequentially in the order they appear and stop at the first failure",
-  and shows a skipped result `Not executed: the preceding write_file call failed.`
-  with `is_error: true` — this plugin's synthesized result follows that pattern.
+The problem this plugin solves was originally identified by @Golden-Pigeon (goldpig).
 
 ## License
 

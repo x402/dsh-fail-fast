@@ -7,6 +7,12 @@ this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Changed
+
+- README (both languages) now documents only the plugin's features, behavior and
+  install steps; development notes (verification log, version/interface tracking,
+  repository layout, background research) were removed.
+
 ## [0.2.0] - 2026-10-26
 
 ### Changed

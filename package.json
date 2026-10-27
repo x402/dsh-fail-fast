@@ -1,6 +1,6 @@
 {
   "name": "dsh-fail-fast",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "publishConfig": {
     "access": "public"
   },
@@ -42,8 +42,9 @@
     "LICENSE"
   ],
   "scripts": {
-    "check": "node --check src/index.js",
-    "test": "node test/smoke.mjs"
+    "check": "node --check src/index.js && node --check scripts/check-release.mjs",
+    "test": "node test/smoke.mjs && node test/release-check.mjs",
+    "prepublishOnly": "node scripts/check-release.mjs"
   },
   "engines": {
     "node": ">=22",

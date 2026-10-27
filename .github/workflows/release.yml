@@ -1,0 +1,92 @@
+name: Release
+
+# Tag-driven release: pushing v<version> re-validates the release, publishes to
+# npm through OIDC trusted publishing (no NPM_TOKEN; provenance is generated),
+# and creates the GitHub Release from the CHANGELOG entry. workflow_dispatch
+# re-runs a release for an existing tag, skipping the publish if the version is
+# already on npm.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release, without the v prefix (e.g. 0.3.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write # create the GitHub Release
+  id-token: write # npm trusted publishing / provenance
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve release tag
+        id: release
+        env:
+          DISPATCH_VERSION: ${{ inputs.version }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # Accept both 0.3.0 and v0.3.0; the guard checks the rest.
+            version="${DISPATCH_VERSION#v}"
+            echo "tag=v${version}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.release.outputs.tag }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Ensure npm supports trusted publishing
+        run: npm install --global npm@^11.15.0
+
+      - name: Check whether the version is already on npm
+        id: registry
+        run: |
+          version=$(npm pkg get version | tr -d '"')
+          if npm view "dsh-fail-fast@$version" version >/dev/null 2>&1; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verify release metadata and tests
+        run: |
+          if [ "${{ steps.registry.outputs.published }}" = "true" ]; then
+            node scripts/check-release.mjs --tag "${{ steps.release.outputs.tag }}" --skip-registry
+          else
+            node scripts/check-release.mjs --tag "${{ steps.release.outputs.tag }}"
+          fi
+
+      - name: Publish to npm
+        if: steps.registry.outputs.published == 'false'
+        # Trusted publishing generates the provenance attestation automatically.
+        run: npm publish --access public
+
+      - name: Generate release notes
+        run: node scripts/check-release.mjs --notes > "$RUNNER_TEMP/release-notes.md"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ steps.release.outputs.tag }}"
+          gh release create "$tag" \
+            --verify-tag \
+            --title "$tag" \
+            --notes-file "$RUNNER_TEMP/release-notes.md" \
+          || gh release edit "$tag" \
+            --title "$tag" \
+            --notes-file "$RUNNER_TEMP/release-notes.md"

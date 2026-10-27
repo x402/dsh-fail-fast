@@ -7,6 +7,26 @@ this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-27
+
+### Added
+
+- Tag-driven release workflow (`.github/workflows/release.yml`): pushing
+  `v<version>` re-runs the release checks, publishes to npm with provenance via
+  npm's OIDC trusted publishing (no stored `NPM_TOKEN`) and creates the GitHub
+  Release from the changelog entry. `workflow_dispatch` re-runs a release for an
+  existing tag.
+- `scripts/check-release.mjs`, one release guard shared by the workflow and
+  `prepublishOnly`: the tag must equal `v<package.json version>`, the CHANGELOG
+  must have a section for the version, the version must not be published yet,
+  and the syntax check plus offline tests must pass.
+
+### Changed
+
+- Release process is now tag-driven: bump `version` and CHANGELOG, push `main`,
+  then push the `v<version>` tag; CI publishes. A manual `pnpm publish` remains
+  an emergency fallback and runs the same guard.
+
 ## [0.2.0] - 2026-10-26
 
 ### Added

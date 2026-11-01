@@ -8,36 +8,33 @@
 
 [中文](README.md) | **English**
 
-A DeepSeek Harness (DSH) plugin that treats the tool calls of one model response as
-one batch and makes it **overlap within a scheduling group, run groups in order, and
-stop at the first failure**: concurrency-safe read-only calls still run in parallel,
-but once a call fails, every call that has not started yet is skipped and returned to
-the model as an `is_error: true` "not executed" result.
+A DeepSeek Harness (DSH) plugin that adds fail-fast behavior to tool calls within a
+single step. Once any tool call fails, the plugin intercepts all remaining unstarted
+calls and returns synthesized `is_error: true` ("not executed") results to the model.
 
-It solves a real problem with parallel tool use: models often emit calls that depend
-on one another (a `write` followed by a `bash`), and once an earlier call fails, the
-later calls have lost their premise — running them is wasted work and can leave
-destructive side effects, while making the whole batch serial would be safe but would
-throw away the concurrency of read-only calls.
+Models frequently emit dependent tool calls in a single response (e.g., `write`
+followed by `bash`). DSH's agent loop already handles execution order:
+concurrency-safe reads share parallel groups, while other calls run sequentially in
+their own ordering groups according to model output order. The missing piece is
+failure handling — when an earlier call fails, DSH still dispatches subsequent calls
+whose preconditions no longer hold, wasting execution and risking destructive side
+effects.
 
-The plugin exploits a simple observation — models generally emit calls in dependency
-order, so that order is already the dependency topology — and only denies calls that
-have not started after the failure point, without understanding any tool's semantics
-or a dependency graph. And because skipped calls come back with an explicit "not
-executed" reason, the next turn repairs the batch and the current provider request is
-not wasted.
+Models naturally emit tool calls in dependency order, making the output sequence
+itself an implicit dependency topology. Leveraging this property, the plugin leaves
+DSH's concurrency and ordering schedule intact and requires no knowledge of tool
+semantics or dependency graphs, simply halting unstarted calls after a failure point.
+Because skipped calls return with an explicit "not executed" reason, the current
+turn's context stays intact and the model can recover directly on the next turn.
 
 ## Features
 
-- **Parallelism preserved** — calls that declare `isConcurrencySafe` still overlap up
-  to `maxParallelToolCalls`; enabling the plugin never degrades dispatch to global
-  serial execution.
-- **Group order preserved** — side-effecting or order-dependent calls (file writes,
-  bash, …) form exclusive single-call groups and therefore barriers, so `write → bash`
-  dependency order is kept.
+- **Scheduling untouched** — the plugin takes over no scheduling: concurrency-safe
+  calls still overlap up to `maxParallelToolCalls`, other calls keep their ordering
+  groups, and dispatch is never degraded to global serial execution.
 - **Stop at the first failure** — any final `is_error: true` result (tool error,
-  policy denial, timeout, post-execute block) cancels every call in the batch that has
-  not started yet; siblings already started in the failing group finish normally.
+  policy denial, timeout, post-execute block) cancels every remaining unstarted call;
+  siblings already started in the failing group finish normally.
 - **Model-repairable result** — skipped calls come back as `is_error: true` with
   `FailFastSkippedError` / `SKIPPED_AFTER_FAILURE` and an `Error: Not executed: …`
   message, so the model can fix the failure and re-issue the remaining calls.
@@ -53,9 +50,8 @@ not wasted.
 
 ## How it works
 
-DSH's agent loop already partitions one step's calls into **ordering groups**:
-concurrency-safe calls share a parallel group, every other call is its own group, and
-a group is fully drained and committed in model order before the next group starts.
+DSH's agent loop already runs one step's calls as **ordering groups**, one group at a
+time: a group is fully drained and committed in model order before the next starts.
 On top of that the plugin does three things:
 
 1. **Batch tracking** — listens to `session/event` (`step/start`, `tool/call`) and
@@ -82,14 +78,14 @@ The failing call's own result is left untouched.
 - Calls already started in the failing group run to completion (they declared
   themselves concurrency-safe and independent, so their results remain meaningful); no
   new call starts afterwards. If the failure commits very quickly, a same-group tail
-  that has not been prepared yet is also skipped — the conservative direction.
+  that has not been prepared yet is also skipped; that is the conservative direction.
 - Non-concurrency-safe calls (writes, bash, …) are single-call groups, so
   `write → bash` dependency order is preserved naturally.
 - A single-call batch is unaffected; batch state resets at every step boundary.
 - Aborted batches are synthesized by the agent loop itself (`aborted before
   dispatch`); this plugin stays out of that path.
-- Cost: already-started same-group calls cannot be recalled (they are independent —
-  that is what allows the overlap). Tools that want to stop earlier must honor
+- Cost: already-started same-group calls cannot be recalled (they are independent,
+  which is what allows the overlap). Tools that want to stop earlier must honor
   `exec.signal`.
 
 ## Install

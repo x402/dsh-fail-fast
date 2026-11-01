@@ -7,6 +7,18 @@ this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Changed
+
+- Plugin Manager title: the Chinese title is now `工具批次失败即停` (was
+  `工具批次快速失败`), and both locale descriptions now name the `fail-fast`
+  policy explicitly. The English title, `Fail-Fast Tool Batches`, is unchanged.
+- README (both languages): rewrote the intro so each paragraph has one job — plugin
+  behavior, DSH's existing scheduling plus the failure-handling gap, then the
+  dependency-order insight and recovery loop. Removed repeated scheduling
+  descriptions, replaced literal translations (`emit`, `expired`), unified quotation
+  marks, and named the `fail-fast` mechanism in the first sentence. The npm
+  description now uses the same "remaining unstarted call" wording.
+
 ## [0.3.0] - 2026-10-27
 
 ### Added

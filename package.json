@@ -12,7 +12,7 @@
   "bugs": {
     "url": "https://github.com/x402/dsh-fail-fast/issues"
   },
-  "description": "Group-aware fail-fast tool batches for DeepSeek Harness: parallel-safe calls in a group still overlap, but once a call fails every call that has not started yet is skipped with a synthesized \"not executed\" error.",
+  "description": "Group-aware fail-fast tool batches for DeepSeek Harness: parallel-safe calls in a group still overlap, but once a call fails every remaining unstarted call is skipped with a synthesized \"not executed\" error.",
   "icon": "./docs/assets/icon.svg",
   "keywords": [
     "dsh",

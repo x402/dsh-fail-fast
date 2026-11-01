@@ -8,7 +8,7 @@ Instructions for AI coding agents working in this repository. Humans: start with
 `dsh-fail-fast` is a DeepSeek Harness (DSH) bundle: a single dependency-free Host
 plugin plus a Loader patch that inserts it. It makes one model turn's tool batch
 fail fast — inside a scheduling group, parallel-safe calls still overlap; once a
-call fails, every call that has not started yet is denied and settled as an
+call fails, every remaining unstarted call is denied and settled as an
 `is_error` "not executed" result instead of running.
 
 The plugin observes the public DSH extension points and never replaces the tool

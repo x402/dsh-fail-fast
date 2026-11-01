@@ -7,6 +7,8 @@ this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-11-01
+
 ### Changed
 
 - Plugin Manager title: the Chinese title is now `工具批次失败即停` (was

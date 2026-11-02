@@ -1,6 +1,10 @@
 # dsh-fail-fast
 
 <p align="center">
+  <img alt="dsh-fail-fast icon" src="https://raw.githubusercontent.com/x402/dsh-fail-fast/main/docs/assets/icon.svg" width="96" height="96">
+</p>
+
+<p align="center">
   <a href="https://github.com/x402/dsh-fail-fast/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/x402/dsh-fail-fast/actions/workflows/ci.yml/badge.svg"></a>
   <a href="https://www.npmjs.com/package/dsh-fail-fast"><img alt="npm" src="https://img.shields.io/npm/v/dsh-fail-fast"></a>
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue"></a>

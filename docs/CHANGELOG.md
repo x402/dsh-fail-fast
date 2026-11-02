@@ -7,6 +7,13 @@ this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+
+- Repository icon shown at the top of both READMEs: `docs/assets/icon.svg`, the
+  existing vector source. The 180×180 raster export `docs/assets/icon-180.png` is
+  kept for the plugin-list storefront tile, whose `icon:` field only accepts
+  GitHub-hosted raster images.
+
 ## [0.3.1] - 2026-11-01
 
 ### Changed
